@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  streamlit:
+    build: .                   # <- construye la imagen usando el Dockerfile en este directorio
+    container_name: matched_books
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env                   # carga tus secrets desde .env
+    restart: unless-stopped
