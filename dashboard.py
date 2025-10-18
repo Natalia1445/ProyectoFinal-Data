@@ -66,38 +66,24 @@ df, data_source = load_data()
 if df.empty:
     st.stop()
 
-if 'price' in df.columns:
-    df['price'] = pd.to_numeric(df['price'], errors='coerce')
-    df = df[df['price'].notna()]
-    df = df[df['price'] > 0]
-    df = df[df['price'] < 500]
-
 st.title("📚 Amazon vs Goodreads: Rating Analysis")
 st.markdown(f"**Data Source:** {data_source} | **Books:** {len(df):,}")
 
+# SIDEBAR - SOLO Filtros de Rating y Outliers
 st.sidebar.header("🔍 Filters")
+
 show_outliers = st.sidebar.checkbox("Show only outliers (>2 pts difference)")
 
 st.sidebar.subheader("Goodreads Rating")
-gr_min, gr_max = st.sidebar.slider("Select range", 0.0, 10.0, (0.0, 10.0), key="gr_range")
+gr_min, gr_max = st.sidebar.slider("Select range", 0.0, 10.0, (0.0, 10.0), key="gr")
 
 st.sidebar.subheader("Amazon Rating")
-amz_min, amz_max = st.sidebar.slider("Select range", 0.0, 10.0, (0.0, 10.0), key="amz_range")
-
-price_filter_enabled = False
-if 'price' in df.columns:
-    st.sidebar.subheader("Price Range")
-    valid_prices = df['price'].dropna()
-    price_min = float(valid_prices.min())
-    price_max = float(valid_prices.max())
-    st.sidebar.caption(f"{len(valid_prices):,} books with price")
-    price_filter_enabled = st.sidebar.checkbox("Enable price filter")
-    if price_filter_enabled:
-        price_range = st.sidebar.slider("Select price ($)", price_min, price_max, (price_min, price_max))
+amz_min, amz_max = st.sidebar.slider("Select range", 0.0, 10.0, (0.0, 10.0), key="amz")
 
 st.sidebar.subheader("🔎 Search")
 search_term = st.sidebar.text_input("Search by title or author")
 
+# APLICAR FILTROS (SIN PRECIO)
 df_filtered = df.copy()
 
 if show_outliers:
@@ -110,18 +96,13 @@ df_filtered = df_filtered[
     (df_filtered['amazon_rating_norm'] <= amz_max)
 ]
 
-if price_filter_enabled and 'price' in df.columns:
-    df_filtered = df_filtered[
-        (df_filtered['price'] >= price_range[0]) &
-        (df_filtered['price'] <= price_range[1])
-    ]
-
 if search_term:
     df_filtered = df_filtered[
         df_filtered['title'].str.contains(search_term, case=False, na=False) |
         df_filtered['authors_goodreads'].str.contains(search_term, case=False, na=False)
     ]
 
+# KPIS
 st.header(" Key Metrics")
 col1, col2, col3, col4 = st.columns(4)
 
@@ -137,18 +118,18 @@ with col3:
     st.metric("Outliers", f"{outliers}")
 
 with col4:
+    # Mostrar cuántos tienen precio
     if 'price' in df_filtered.columns:
         books_with_price = df_filtered[df_filtered['price'].notna()]
-        if len(books_with_price) > 0:
-            avg_price = books_with_price['price'].mean()
-            st.metric("Avg Price", f"${avg_price:.2f}")
-            st.caption(f"{len(books_with_price)} books")
-        else:
-            st.metric("Avg Price", "N/A")
+        st.metric("Books with Price", f"{len(books_with_price):,}")
+    else:
+        st.metric("Books with Price", "N/A")
 
 st.divider()
 
-st.header(" Ratings Comparison")
+# SCATTER PLOT
+st.header("📈 Ratings Comparison")
+
 df_filtered['color'] = df_filtered['is_outlier'].map({True: '🔴 Outlier', False: '🔵 Normal'})
 
 hover_cols = ['title', 'authors_goodreads', 'rating_difference']
@@ -179,16 +160,30 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
 
+# PRICE ANALYSIS - Solo si hay libros con precio
 if 'price' in df_filtered.columns:
-    books_with_price = df_filtered[df_filtered['price'].notna()]
+    books_with_price = df_filtered[df_filtered['price'].notna() & (df_filtered['price'] > 0)]
+    
     if len(books_with_price) > 0:
-        st.header(" Price Analysis")
-        st.caption(f"Analysis based on {len(books_with_price):,} books with price data")
+        st.header("Price Analysis")
+        st.info(f" Analysis based on **{len(books_with_price)} books** with price data ({len(books_with_price)/len(df_filtered)*100:.1f}% of filtered books)")
+        
         col1, col2 = st.columns(2)
+        
         with col1:
             st.subheader("Price Distribution")
-            fig_price = px.histogram(books_with_price, x='price', nbins=30, labels={'price': 'Price ($)'})
+            fig_price = px.histogram(
+                books_with_price,
+                x='price',
+                nbins=30,
+                labels={'price': 'Price ($)'}
+            )
             st.plotly_chart(fig_price, use_container_width=True)
+            
+            # Stats
+            st.metric("Average Price", f"${books_with_price['price'].mean():.2f}")
+            st.caption(f"Min: ${books_with_price['price'].min():.2f} | Max: ${books_with_price['price'].max():.2f}")
+        
         with col2:
             st.subheader("Price vs Amazon Rating")
             fig_scatter = px.scatter(
@@ -196,21 +191,36 @@ if 'price' in df_filtered.columns:
                 x='price',
                 y='amazon_rating_norm',
                 color='is_outlier',
-                hover_data=['title'],
+                hover_data=['title', 'authors_goodreads'],
                 labels={'price': 'Price ($)', 'amazon_rating_norm': 'Amazon Rating'},
                 color_discrete_map={True: 'red', False: 'lightblue'}
             )
             st.plotly_chart(fig_scatter, use_container_width=True)
+            
+            # Correlation
+            corr = books_with_price['price'].corr(books_with_price['amazon_rating_norm'])
+            st.metric("Price-Rating Correlation", f"{corr:.3f}")
+            if abs(corr) < 0.3:
+                st.caption(" Weak correlation - price doesn't predict rating")
+            elif corr > 0:
+                st.caption(" Positive - expensive books rated higher")
+            else:
+                st.caption(" Negative - cheaper books rated higher")
+        
         st.divider()
 
+# TOP OUTLIERS
 st.header(" Top 10 Biggest Discrepancies")
+
 outliers_df = df_filtered[df_filtered['is_outlier'] == True].nlargest(10, 'rating_difference')
 
 if len(outliers_df) > 0:
     display_cols = ['title', 'authors_goodreads', 'goodreads_rating_norm', 'amazon_rating_norm', 'rating_difference']
     if 'price' in outliers_df.columns:
         display_cols.append('price')
+    
     outliers_display = outliers_df[display_cols].copy()
+    
     rename_map = {
         'title': 'Title',
         'authors_goodreads': 'Author',
@@ -220,18 +230,23 @@ if len(outliers_df) > 0:
         'price': 'Price ($)'
     }
     outliers_display = outliers_display.rename(columns=rename_map)
+    
     for col in ['Goodreads', 'Amazon', 'Difference']:
         if col in outliers_display.columns:
             outliers_display[col] = outliers_display[col].round(2)
+    
     if 'Price ($)' in outliers_display.columns:
         outliers_display['Price ($)'] = outliers_display['Price ($)'].round(2)
+    
     st.dataframe(outliers_display, use_container_width=True, hide_index=True)
 else:
     st.info("No outliers found with current filters")
 
 st.divider()
 
+# PLATFORM COMPARISON
 st.header(" Platform Comparison")
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
@@ -246,3 +261,13 @@ with col3:
     diff = abs(avg_amz - avg_gr)
     higher = "Amazon" if avg_amz > avg_gr else "Goodreads"
     st.metric(f"{higher} is higher by", f"{diff:.2f} pts")
+
+st.divider()
+
+# FULL TABLE
+with st.expander("🔍 View All Books"):
+    display_cols = ['title', 'authors_goodreads', 'goodreads_rating_norm', 'amazon_rating_norm', 'rating_difference', 'is_outlier']
+    if 'price' in df_filtered.columns:
+        display_cols.insert(5, 'price')
+    
+    st.dataframe(df_filtered[display_cols], use_container_width=True, hide_index=True)
