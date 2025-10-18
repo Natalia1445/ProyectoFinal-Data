@@ -4,7 +4,7 @@ services:
     build: .                   # <- construye la imagen usando el Dockerfile en este directorio
     container_name: matched_books
     ports:
-      - "8502:8501"           # Host port 8502 -> Container port 8501 (Streamlit default)
+      - "8502:8502"           # Host port 8502 -> Container port 8501 (Streamlit default)
     env_file:
       - .env                   # carga tus secrets desde .env
     restart: unless-stopped
