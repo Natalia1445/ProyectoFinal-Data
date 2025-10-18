@@ -203,7 +203,7 @@ if 'price' in df_filtered.columns:
             st.plotly_chart(fig_scatter, use_container_width=True)
         st.divider()
 
-st.header("🔥 Top 10 Biggest Discrepancies")
+st.header(" Top 10 Biggest Discrepancies")
 outliers_df = df_filtered[df_filtered['is_outlier'] == True].nlargest(10, 'rating_difference')
 
 if len(outliers_df) > 0:
