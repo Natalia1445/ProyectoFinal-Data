@@ -1,24 +1,19 @@
-ame: Deploy (Self-hosted + docker-compose + prod env)
-
+name: Deploy2 (Self-hosted + docker-compose + prod env)
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
-
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   deploy:
     runs-on: self-hosted
     environment: prod
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Create .env from prod secrets (DB + AWS)
+      - name: Create .env from prod secrets
         shell: bash
         run: |
           set -euo pipefail
@@ -27,14 +22,8 @@ jobs:
             echo "DB_NAME=${{ secrets.DB_NAME }}";
             echo "DB_USER=${{ secrets.DB_USER }}";
             echo "DB_PASS=${{ secrets.DB_PASS }}";
-
-            echo "AWS_REGION=${{ secrets.AWS_REGION }}";
-            echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}";
-            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}";
-            # echo "AWS_SESSION_TOKEN=${{ secrets.AWS_SESSION_TOKEN }}";
           } > .env
           chmod 600 .env
-
       - name: Build & Up with docker-compose
         shell: bash
         run: |
