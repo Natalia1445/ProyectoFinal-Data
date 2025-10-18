@@ -42,11 +42,11 @@ jobs:
           docker-compose down --remove-orphans || true
           docker-compose up -d --build
           docker-compose ps
-          docker logs --tail 50 taxi_dashboard || true
+          docker logs --tail 50 matched_books || true
 
       # (Opcional) Verificación rápida de credenciales dentro del contenedor
       - name: Verify AWS identity inside container
         shell: bash
         run: |
           set -e
-          docker exec taxi_dashboard aws sts get-caller-identity || (echo "AWS creds not working in container" && exit 1)
+          docker exec matched_books aws sts get-caller-identity || (echo "AWS creds not working in container" && exit 1)
