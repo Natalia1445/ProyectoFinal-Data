@@ -22,6 +22,9 @@ jobs:
             echo "DB_NAME=${{ secrets.DB_NAME }}";
             echo "DB_USER=${{ secrets.DB_USER }}";
             echo "DB_PASS=${{ secrets.DB_PASS }}";
+            echo "AWS_REGION=${{ secrets.AWS_REGION }}";
+            echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}";
+            echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}";
           } > .env
           chmod 600 .env
       - name: Build & Up with docker-compose
