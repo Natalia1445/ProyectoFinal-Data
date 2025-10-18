@@ -20,7 +20,8 @@ RUN pip install --no-cache-dir \
     matplotlib \
     seaborn \
     python-dotenv \
-    boto3
+    boto3 \
+    plotly.express
 
 # Directorio de trabajo
 WORKDIR /app
