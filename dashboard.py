@@ -219,7 +219,7 @@ st.divider()
 
 # Análisis de Precio
 if 'price' in df_filtered.columns:
-    st.header( Price Analysis")
+    st.header( "Price Analysis")
     
     col1, col2 = st.columns(2)
     
