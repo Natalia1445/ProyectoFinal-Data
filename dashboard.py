@@ -7,7 +7,7 @@ import mysql.connector
 from mysql.connector import errorcode
 import plotly.express as px
 
-# Configuración
+# Config
 st.set_page_config(page_title="Books Rating Analysis", layout="wide")
 
 # Variables de entorno (se configuran en Streamlit Cloud Secrets)
@@ -19,7 +19,7 @@ DB_PASS = os.getenv("DB_PASS")
 S3_BUCKET = os.getenv("S3_BUCKET", "xideralaws-curso-benjamin-2")
 S3_KEY = os.getenv("S3_KEY", "transformed/matched_books_final.csv")
 
-# Carga de datos
+# Funciones de carga
 
 @st.cache_data
 def read_csv_from_s3(bucket: str, key: str, region: str) -> pd.DataFrame:
@@ -79,7 +79,7 @@ def load_data():
             st.sidebar.success("📊 Datos cargados desde MySQL")
             return df, "MySQL"
     
-    # Si falla, tomar datos de S3
+    # Fallback a S3
     df = read_csv_from_s3(S3_BUCKET, S3_KEY, AWS_REGION)
     if not df.empty:
         st.sidebar.info("📦 Datos cargados desde S3")
@@ -89,17 +89,17 @@ def load_data():
     st.error("No se pudieron cargar los datos desde MySQL ni S3")
     return pd.DataFrame(), "None"
 
-# Carga datos
+# Carga de datos
 df, data_source = load_data()
 
 if df.empty:
     st.stop()
 
-# Título
+#Título
 st.title("📚 Amazon vs Goodreads: Rating Analysis")
 st.markdown(f"**Data Source:** {data_source} | **Books:** {len(df):,}")
 
-# Sidebar -Filtros
+# Sidebar Filtros
 st.sidebar.header("🔍 Filters")
 
 # Filtro: Solo outliers
@@ -135,9 +135,7 @@ if 'price' in df.columns:
 st.sidebar.subheader("🔎 Search")
 search_term = st.sidebar.text_input("Search by title or author")
 
-# ============================================
-# APLICAR FILTROS
-# ============================================
+#Filtros==
 df_filtered = df.copy()
 
 if show_outliers:
@@ -150,10 +148,11 @@ df_filtered = df_filtered[
     (df_filtered['amazon_rating_norm'] <= amz_max)
 ]
 
+# Fix
 if 'price' in df.columns:
     df_filtered = df_filtered[
         (df_filtered['price'] >= price_range[0]) &
-        (df_filtered['price'] <= price_range[1])
+        (df_filtered['price'] <= price_range[1])  # ← ESTA LÍNEA CORREGIDA
     ]
 
 if search_term:
@@ -162,8 +161,8 @@ if search_term:
         df_filtered['authors_goodreads'].str.contains(search_term, case=False, na=False)
     ]
 
-# KPIs
-st.header(" Key Metrics")
+#KPIs
+st.header("📊 Key Metrics")
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
@@ -184,8 +183,8 @@ with col4:
 
 st.divider()
 
-# Scatter Plot
-st.header("📈 Ratings Comparison")
+# ScatterPlot
+st.header("Comparación Ratings")
 
 df_filtered['color'] = df_filtered['is_outlier'].map({True: '🔴 Outlier', False: '🔵 Normal'})
 
@@ -217,9 +216,9 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
 
-# Análisis de Precio
+# AnÁLISIS pRECIO
 if 'price' in df_filtered.columns:
-    st.header( "Price Analysis")
+    st.header(" Price Analysis")
     
     col1, col2 = st.columns(2)
     
@@ -286,9 +285,7 @@ else:
 
 st.divider()
 
-# ============================================
-# PLATFORM COMPARISON
-# ============================================
+# Comparación
 st.header("⚖️ Platform Comparison")
 
 col1, col2, col3 = st.columns(3)
@@ -308,7 +305,7 @@ with col3:
 
 st.divider()
 
-# Tabla completa
+#Tabla
 with st.expander("🔍 View All Books"):
     display_cols = ['title', 'authors_goodreads', 'goodreads_rating_norm',
                     'amazon_rating_norm', 'rating_difference', 'is_outlier']
@@ -317,7 +314,3 @@ with st.expander("🔍 View All Books"):
     
     st.dataframe(df_filtered[display_cols], use_container_width=True, hide_index=True)
 
-# Footer
-st.divider()
-st.caption(f"📊 Showing {len(df_filtered):,} of {len(df):,} books | Data from {data_source}")
-st.caption("🔗 ETL: AWS Lambda → S3 + MySQL → Streamlit")
