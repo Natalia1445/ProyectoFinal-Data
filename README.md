@@ -42,30 +42,7 @@ MySQL + S3 (resultados)
 Dashboard en Streamlit
 
 
-## Lo que aprendí
 
-### 1. Matchear por título no es suficiente
-
-Primer intento: "Anna Karenina" en Amazon = "Anna Karenina" en Goodreads
-
-Problema: Uno es la novela de Tolstoy, el otro es material de estudio de Cara Delevingne.
-
-Solución: Validación de autores con fuzzy matching. 135 matches falsos eliminados.
-
-### 2. Los datos están sucios
-
-- Precios en formato raro
-- Ratings en diferentes escalas (1-5 vs 1-10)
-- Títulos con "The", sin "The", con caracteres especiales
-- NaN por todos lados
-
-Pasé más tiempo limpiando que programando.
-
-### 3. Lambda tiene límites de memoria
-
-Procesar 500k reviews de golpe = 💥
-
-Solución: Chunks de 10k. Más lento pero funciona.
 
 ## Hallazgos interesantes
 
@@ -82,7 +59,7 @@ Solución: Chunks de 10k. Más lento pero funciona.
 - GitHub Actions para CI/CD
 
 **Código:**
-- Python, Pandas (obvio)
+- Python, Pandas
 - Plotly para gráficas
 - Streamlit para el dashboard
 - FuzzyWuzzy para matching de autores
@@ -115,19 +92,9 @@ aws s3 cp goodreads_books.csv s3://tu-bucket/raw/
 streamlit run app.py
 ```
 
-## Estructura del proyecto
-```
-├── lambda_1_extract.py       # Limpia Amazon reviews
-├── lambda_2_transform.py     # Matchea libros
-├── lambda_3_load.py          # Calcula y carga a DB
-├── app.py                    # Dashboard
-├── requirements.txt
-└── .github/
-    └── workflows/
-        └── deploy.yml        # Auto-deploy
-```
 
-## Challenges que me quitaron el sueño
+
+## Desafíos
 
 1. **El matching de libros**
    - Título + autor no siempre funciona
@@ -145,12 +112,6 @@ streamlit run app.py
    - NaN everywhere
    - Decidí no usarlo como filtro
 
-## Si tuviera más tiempo
-
-- Machine Learning para predecir outliers
-- Sentiment analysis de reviews (no solo ratings)
-- Más plataformas (Barnes & Noble, Apple Books)
-- Tracking histórico - ¿cómo cambian los ratings con el tiempo?
 
 ## El Dashboard
 
@@ -161,22 +122,15 @@ Tiene:
 - Análisis de precio (para los que tienen)
 - Búsqueda de libros
 
-Lo que NO tiene:
-- Diseño súper fancy (funcional > bonito)
-- Animaciones locas
-- Gráficas 3D innecesarias
 
 ## Conclusión
 
 No confíes solo en Amazon. Si un libro tiene 5 estrellas ahí pero 3 en Goodreads, probablemente es marketing.
 
-Usa ambas plataformas. O mejor: usa este dashboard.
+Usa ambas plataformas. 
 
 ---
-
-**Hecho con ☕ y muchas horas de debugging**
 
 Natalia Esquivel  
 AWS Data Engineering Course 2025
 
-P.D. Si encuentras un bug, probablemente ya lo sé pero no tuve tiempo de arreglarlo.
